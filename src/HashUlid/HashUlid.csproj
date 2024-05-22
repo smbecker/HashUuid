@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<RootNamespace>System</RootNamespace>
+		<PackageTags>$(PackageTags);UUIDv3;UUIDv5;HashUuid;Ulid</PackageTags>
+		<Description>Adds support for generating UUID v3/v5 identifiers as Ulid instances.</Description>
+		<TargetFrameworks>net7.0;net8.0</TargetFrameworks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<IncludeSymbols>true</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Compile Include="..\HashUuid\HashUuidInternal.cs">
+			<Link>HashUuidInternal.cs</Link>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Ulid"/>
+	</ItemGroup>
+
+</Project>
