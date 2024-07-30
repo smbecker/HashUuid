@@ -45,6 +45,7 @@ public static partial class HashUuid
 		return ToGuid(ref output);
 	}
 
+#if NET7_0_OR_GREATER
 	public static Guid CreateV5(this Guid namespaceId, Int128 data) {
 		var output = (Span<byte>)stackalloc byte[16];
 		V5.Create(GetNamespace(ref namespaceId), data, output);
@@ -56,6 +57,7 @@ public static partial class HashUuid
 		V5.Create(GetNamespace(ref namespaceId), data, output);
 		return ToGuid(ref output);
 	}
+#endif
 
 	public static Guid CreateV5(this Guid namespaceId, DateTimeOffset data) {
 		var output = (Span<byte>)stackalloc byte[16];

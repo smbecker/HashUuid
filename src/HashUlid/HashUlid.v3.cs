@@ -45,6 +45,7 @@ public static partial class HashUlid
 		return new(output);
 	}
 
+#if NET7_0_OR_GREATER
 	public static Ulid CreateV3(this Ulid namespaceId, Int128 data) {
 		var output = (Span<byte>)stackalloc byte[16];
 		V3.Create(GetNamespace(ref namespaceId), data, output);
@@ -56,6 +57,7 @@ public static partial class HashUlid
 		V3.Create(GetNamespace(ref namespaceId), data, output);
 		return new(output);
 	}
+#endif
 
 	public static Ulid CreateV3(this Ulid namespaceId, DateTimeOffset data) {
 		var output = (Span<byte>)stackalloc byte[16];

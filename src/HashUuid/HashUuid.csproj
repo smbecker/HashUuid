@@ -4,13 +4,15 @@
 		<RootNamespace>System</RootNamespace>
 		<PackageTags>$(PackageTags);UUID;UUIDv3;UUIDv5;HashUuid</PackageTags>
 		<Description>Adds support for generating UUID v3/v5 identifiers.</Description>
-		<TargetFrameworks>net7.0;net8.0</TargetFrameworks>
+		<TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EnablePreviewFeatures>True</EnablePreviewFeatures>
+		<GenerateRequiresPreviewFeaturesAttribute>False</GenerateRequiresPreviewFeaturesAttribute>
 	</PropertyGroup>
 
 </Project>

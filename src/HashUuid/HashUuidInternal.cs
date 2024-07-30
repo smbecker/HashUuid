@@ -13,7 +13,6 @@
 //  */
 
 using System.Buffers;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -27,6 +26,7 @@ internal static class HashUuidInternal
 {
 	internal interface IVersion
 	{
+#pragma warning disable CA2252
 		static abstract int HashSizeInBytes {
 			get;
 		}
@@ -38,6 +38,7 @@ internal static class HashUuidInternal
 		static abstract void HashData(ReadOnlySpan<byte> source, Span<byte> destination);
 
 		static abstract HashAlgorithm CreateHashAlgorithm();
+#pragma warning restore CA2252
 	}
 
 	// ReSharper disable once InconsistentNaming
@@ -46,7 +47,15 @@ internal static class HashUuidInternal
 	{
 		public static byte Version => 3;
 
-		public static int HashSizeInBytes => MD5.HashSizeInBytes;
+		public static int HashSizeInBytes {
+			get {
+#if NET7_0_OR_GREATER
+				return MD5.HashSizeInBytes;
+#else
+				return 16;
+#endif
+			}
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void HashData(ReadOnlySpan<byte> source, Span<byte> destination) => MD5.HashData(source, destination);
@@ -60,7 +69,15 @@ internal static class HashUuidInternal
 	{
 		public static byte Version => 5;
 
-		public static int HashSizeInBytes => SHA1.HashSizeInBytes;
+		public static int HashSizeInBytes {
+			get {
+#if NET7_0_OR_GREATER
+				return SHA1.HashSizeInBytes;
+#else
+				return 20;
+#endif
+			}
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void HashData(ReadOnlySpan<byte> source, Span<byte> destination) => SHA1.HashData(source, destination);
@@ -110,6 +127,7 @@ internal static class HashUuidInternal
 			CreateWithStackAllocBuffer(namespaceBytes, data, outputBytes);
 		}
 
+#if NET7_0_OR_GREATER
 		public static void Create(in ReadOnlySpan<byte> namespaceBytes, Int128 value, in Span<byte> outputBytes) {
 			var data = (Span<byte>)stackalloc byte[sizeof(ulong) * 2];
 			WriteInteger(value, data);
@@ -124,8 +142,9 @@ internal static class HashUuidInternal
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private static void WriteInteger<TInteger>(TInteger value, in Span<byte> output)
-			where TInteger : IBinaryInteger<TInteger> =>
+			where TInteger : Numerics.IBinaryInteger<TInteger> =>
 			value.TryWriteLittleEndian(output, out _);
+#endif
 
 		public static void Create(in ReadOnlySpan<byte> namespaceBytes, DateTimeOffset value, in Span<byte> outputBytes) {
 			Create(namespaceBytes, value.ToUnixTimeSeconds(), outputBytes);
