@@ -12,10 +12,14 @@
 //  * limitations under the License.
 //  */
 
+using System.Text.Json.Serialization;
+
 namespace System;
 
 public class HashUlidTests
 {
+	private static readonly Ulid NamespaceDns = new(new Guid("6ba7b810-9dad-11d1-80b4-00c04fd430c8"));
+
 	// Test cases taken from https://github.com/google/uuid repository
 
 	[Fact]
@@ -33,4 +37,25 @@ public class HashUlidTests
 		var actual = namespaceId.CreateV5("python.org");
 		Assert.Equal(expected, actual);
 	}
+
+	[Fact]
+	public void json_type_info_overload_matches_reflection_v3() {
+		var data = new JsonTestData("python.org", 42);
+		var expected = NamespaceDns.CreateV3FromJson(data, options: null);
+		var actual = NamespaceDns.CreateV3FromJson(data, JsonTestContext.Default.JsonTestData);
+		Assert.Equal(expected, actual);
+	}
+
+	[Fact]
+	public void json_type_info_overload_matches_reflection_v5() {
+		var data = new JsonTestData("python.org", 42);
+		var expected = NamespaceDns.CreateV5FromJson(data, options: null);
+		var actual = NamespaceDns.CreateV5FromJson(data, JsonTestContext.Default.JsonTestData);
+		Assert.Equal(expected, actual);
+	}
 }
+
+public sealed record JsonTestData(string Name, int Value);
+
+[JsonSerializable(typeof(JsonTestData))]
+internal sealed partial class JsonTestContext : JsonSerializerContext;

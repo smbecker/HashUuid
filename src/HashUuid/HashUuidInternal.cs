@@ -13,20 +13,24 @@
 //  */
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 
 namespace System;
 
 internal static class HashUuidInternal
 {
+	internal const string JsonSerializationMessage =
+		"JSON serialization might require types that cannot be statically analyzed. Use the overload that takes a JsonTypeInfo<T> (e.g. from a JsonSerializerContext) instead.";
+
 	internal interface IVersion
 	{
-#pragma warning disable CA2252
 		static abstract int HashSizeInBytes {
 			get;
 		}
@@ -38,7 +42,6 @@ internal static class HashUuidInternal
 		static abstract void HashData(ReadOnlySpan<byte> source, Span<byte> destination);
 
 		static abstract HashAlgorithm CreateHashAlgorithm();
-#pragma warning restore CA2252
 	}
 
 	// ReSharper disable once InconsistentNaming
@@ -49,11 +52,7 @@ internal static class HashUuidInternal
 
 		public static int HashSizeInBytes {
 			get {
-#if NET7_0_OR_GREATER
 				return MD5.HashSizeInBytes;
-#else
-				return 16;
-#endif
 			}
 		}
 
@@ -71,11 +70,7 @@ internal static class HashUuidInternal
 
 		public static int HashSizeInBytes {
 			get {
-#if NET7_0_OR_GREATER
 				return SHA1.HashSizeInBytes;
-#else
-				return 20;
-#endif
 			}
 		}
 
@@ -127,7 +122,6 @@ internal static class HashUuidInternal
 			CreateWithStackAllocBuffer(namespaceBytes, data, outputBytes);
 		}
 
-#if NET7_0_OR_GREATER
 		public static void Create(in ReadOnlySpan<byte> namespaceBytes, Int128 value, in Span<byte> outputBytes) {
 			var data = (Span<byte>)stackalloc byte[sizeof(ulong) * 2];
 			WriteInteger(value, data);
@@ -144,7 +138,6 @@ internal static class HashUuidInternal
 		private static void WriteInteger<TInteger>(TInteger value, in Span<byte> output)
 			where TInteger : Numerics.IBinaryInteger<TInteger> =>
 			value.TryWriteLittleEndian(output, out _);
-#endif
 
 		public static void Create(in ReadOnlySpan<byte> namespaceBytes, DateTimeOffset value, in Span<byte> outputBytes) {
 			Create(namespaceBytes, value.ToUnixTimeSeconds(), outputBytes);
@@ -152,14 +145,7 @@ internal static class HashUuidInternal
 
 		public static void Create(in ReadOnlySpan<byte> namespaceBytes, Guid value, in Span<byte> outputBytes) {
 			var data = (Span<byte>)stackalloc byte[16];
-#if NET8_0_OR_GREATER
 			value.TryWriteBytes(data, false, out _);
-#else
-			value.TryWriteBytes(data);
-			if (!BitConverter.IsLittleEndian) {
-				HashUuidInternal.SwapByteOrder(ref data);
-			}
-#endif
 			CreateWithStackAllocBuffer(namespaceBytes, data, outputBytes);
 		}
 
@@ -210,9 +196,20 @@ internal static class HashUuidInternal
 			CreateFromHash(hash, outputBytes);
 		}
 
+		[RequiresUnreferencedCode(JsonSerializationMessage)]
+		[RequiresDynamicCode(JsonSerializationMessage)]
 		public static void Create<T>(in ReadOnlySpan<byte> namespaceBytes, T data, JsonSerializerOptions? options, in Span<byte> outputBytes) {
 			using var stream = new MemoryStream();
 			JsonSerializer.Serialize(stream, data, options);
+			stream.Position = 0;
+			Create(namespaceBytes, stream, outputBytes);
+		}
+
+		public static void Create<T>(in ReadOnlySpan<byte> namespaceBytes, T data, JsonTypeInfo<T> jsonTypeInfo, in Span<byte> outputBytes) {
+			ArgumentNullException.ThrowIfNull(jsonTypeInfo);
+
+			using var stream = new MemoryStream();
+			JsonSerializer.Serialize(stream, data, jsonTypeInfo);
 			stream.Position = 0;
 			Create(namespaceBytes, stream, outputBytes);
 		}

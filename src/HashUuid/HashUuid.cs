@@ -32,13 +32,6 @@ public static partial class HashUuid
 	}
 
 	private static Guid ToGuid(ref Span<byte> value) {
-#if NET8_0_OR_GREATER
 		return new Guid(value, true);
-#else
-		if (BitConverter.IsLittleEndian) {
-			HashUuidInternal.SwapByteOrder(ref value);
-		}
-		return new Guid(value);
-#endif
 	}
 }

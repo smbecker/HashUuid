@@ -12,9 +12,11 @@
 //  * limitations under the License.
 //  */
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.Json.Serialization.Metadata;
 using static System.HashUuidInternal;
 
 namespace System;
@@ -45,7 +47,6 @@ public static partial class HashUuid
 		return ToGuid(ref output);
 	}
 
-#if NET7_0_OR_GREATER
 	public static Guid CreateV5(this Guid namespaceId, Int128 data) {
 		var output = (Span<byte>)stackalloc byte[16];
 		V5.Create(GetNamespace(ref namespaceId), data, output);
@@ -57,7 +58,6 @@ public static partial class HashUuid
 		V5.Create(GetNamespace(ref namespaceId), data, output);
 		return ToGuid(ref output);
 	}
-#endif
 
 	public static Guid CreateV5(this Guid namespaceId, DateTimeOffset data) {
 		var output = (Span<byte>)stackalloc byte[16];
@@ -101,9 +101,17 @@ public static partial class HashUuid
 		return ToGuid(ref output);
 	}
 
+	[RequiresUnreferencedCode(JsonSerializationMessage)]
+	[RequiresDynamicCode(JsonSerializationMessage)]
 	public static Guid CreateV5FromJson<T>(this Guid namespaceId, T data, JsonSerializerOptions? options = null) {
 		var output = (Span<byte>)stackalloc byte[16];
 		V5.Create(GetNamespace(ref namespaceId), data, options, output);
+		return ToGuid(ref output);
+	}
+
+	public static Guid CreateV5FromJson<T>(this Guid namespaceId, T data, JsonTypeInfo<T> jsonTypeInfo) {
+		var output = (Span<byte>)stackalloc byte[16];
+		V5.Create(GetNamespace(ref namespaceId), data, jsonTypeInfo, output);
 		return ToGuid(ref output);
 	}
 
