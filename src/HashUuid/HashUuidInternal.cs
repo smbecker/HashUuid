@@ -13,9 +13,9 @@
 //  */
 
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -108,17 +108,33 @@ internal static class HashUuidInternal
 
 		public static void Create(in ReadOnlySpan<byte> namespaceBytes, long value, in Span<byte> outputBytes) {
 			var data = (Span<byte>)stackalloc byte[sizeof(long)];
-			BitConverter.TryWriteBytes(data, value);
+			BinaryPrimitives.WriteInt64LittleEndian(data, value);
 			CreateWithStackAllocBuffer(namespaceBytes, data, outputBytes);
 		}
 
-		public static void Create(in ReadOnlySpan<byte> namespaceBytes, double data, in Span<byte> outputBytes) {
-			Create(namespaceBytes, Convert.ToDecimal(data), outputBytes);
+		public static void Create(in ReadOnlySpan<byte> namespaceBytes, double value, in Span<byte> outputBytes) {
+			// Hash the IEEE 754 binary64 representation directly. This used to go through
+			// Convert.ToDecimal(double), whose result changed in .NET 11 (dotnet/runtime#130566),
+			// so the generated identifier depended on the runtime version.
+			if (value == 0d) {
+				value = 0d; // -0.0 and +0.0 compare equal, so give them the same identifier
+			} else if (double.IsNaN(value)) {
+				value = double.NaN; // collapse all NaN payloads to a single canonical NaN
+			}
+
+			var data = (Span<byte>)stackalloc byte[sizeof(double)];
+			BinaryPrimitives.WriteDoubleLittleEndian(data, value);
+			CreateWithStackAllocBuffer(namespaceBytes, data, outputBytes);
 		}
 
 		public static void Create(in ReadOnlySpan<byte> namespaceBytes, decimal value, in Span<byte> outputBytes) {
+			// lo, mid, hi and flags, each written as a little-endian int32
+			var bits = (Span<int>)stackalloc int[4];
+			decimal.GetBits(value, bits);
 			var data = (Span<byte>)stackalloc byte[sizeof(int) * 4];
-			decimal.GetBits(value, MemoryMarshal.Cast<byte, int>(data));
+			for (var i = 0; i < bits.Length; i++) {
+				BinaryPrimitives.WriteInt32LittleEndian(data[(i * sizeof(int))..], bits[i]);
+			}
 			CreateWithStackAllocBuffer(namespaceBytes, data, outputBytes);
 		}
 
